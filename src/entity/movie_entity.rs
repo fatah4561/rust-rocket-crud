@@ -1,7 +1,6 @@
-use rocket::serde::{Deserialize, Serialize};
-use mongodb::bson::{doc, oid::ObjectId};
 use chrono::Utc;
-
+use mongodb::bson::{doc, oid::ObjectId};
+use rocket::serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Movie {

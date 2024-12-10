@@ -81,8 +81,7 @@ impl<'a> MovieRepositoryTrait for MovieRepository {
                     format!("Not Found for id: {id}"),
                 )));
             }
-            Err(e) => return Err(e)
-
+            Err(e) => return Err(e),
         }
     }
 
