@@ -20,26 +20,26 @@ pub trait MovieServiceTrait {
 #[async_trait]
 impl<'a> MovieServiceTrait for MovieService {
     async fn get_all(&self) -> Result<Vec<movie_model::GetAllMoviesResponse>, String> {
-        let res = self.movie_repository.get_all().await;
-        if let Err(ref e) = res {
-            return Err(e.to_string());
-        }
+        let res = self
+            .movie_repository
+            .get_all()
+            .await
+            .map_err(|e| e.to_string())
+            .and_then(|res| Ok(res))?;
 
-        let movies_db = res.unwrap();
         let mut movies = vec![];
-        for movie_db in movies_db {
+        for movie in res {
             let mut id = "".to_string();
-            if movie_db.id.is_some() {
-                id = movie_db.id.unwrap().to_hex()
+            if movie.id.is_some() {
+                id = movie.id.unwrap().to_hex()
             };
 
-            let movie = movie_model::GetAllMoviesResponse {
+            movies.push(movie_model::GetAllMoviesResponse {
                 id,
-                title: movie_db.title,
-                year: movie_db.year as u32,
-                released: movie_db.released.format("%d-%m-%Y %H:%M").to_string(),
-            };
-            movies.push(movie)
+                title: movie.title,
+                year: movie.year as u32,
+                released: movie.released.format("%d-%m-%Y %H:%M").to_string(),
+            })
         }
 
         Ok(movies)
