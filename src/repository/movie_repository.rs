@@ -7,12 +7,12 @@ use mongodb::{
 use crate::entity::movie_entity;
 use crate::rocket::futures::TryStreamExt; // for try_next() trait
 
-pub struct MovieRepo<'a> {
+pub struct MovieRepository<'a> {
     mongo: &'a Client,
 }
 
 #[async_trait]
-pub trait MovieRepository {
+pub trait MovieRepositoryTrait {
     async fn get_all(&self) -> Result<Vec<movie_entity::Movie>, Error>;
     async fn get_detail(&self, id: String) -> Result<movie_entity::Movie, Error>;
     fn insert(&self) -> Result<(), Error>;
@@ -20,12 +20,12 @@ pub trait MovieRepository {
     fn delete(&self, id: String) -> Result<(), Error>;
 }
 
-pub fn new_movie_repository(client: &Client) -> MovieRepo {
-    MovieRepo { mongo: client }
+pub fn new_movie_repository(client: &Client) -> MovieRepository {
+    MovieRepository { mongo: client }
 }
 
 #[async_trait]
-impl<'a> MovieRepository for MovieRepo<'a> {
+impl<'a> MovieRepositoryTrait for MovieRepository<'a> {
     async fn get_all(&self) -> Result<Vec<movie_entity::Movie>, Error> {
         let collection: mongodb::Collection<Document> =
             self.mongo.database("sample_mflix").collection("movies");

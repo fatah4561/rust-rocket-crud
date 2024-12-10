@@ -1,25 +1,25 @@
 use crate::config;
 use crate::models;
-use crate::entity;
 use crate::repository;
-use crate::repository::movie_repository::MovieRepository;
+use crate::service;
+use crate::service::movie_service::MovieServiceTrait;
 
 use rocket::fairing::AdHoc;
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::State;
 
-pub fn stage() -> AdHoc {
+pub fn stage(client: config::mongo::MongoClient) -> AdHoc {
     AdHoc::on_ignite("movie controller", |rocket| async {
-        rocket.mount("/movies", routes![index, read])
+        rocket.manage(client).mount("/movies", routes![index, read])
     })
 }
 
 #[get("/")]
 async fn index(
     db_client: &State<config::mongo::MongoClient>,
-) -> (Status, Json<models::common::Response<Vec<entity::movie_entity::Movie>>>) {
-    let mut response = models::common::Response{ 
+) -> (Status, Json<models::common_model::Response<Vec<models::movie_model::GetAllMoviesResponse>>>) {
+    let mut response = models::common_model::Response{ 
         code: Status::Ok.code as u8, 
         status: Status::Ok.reason().unwrap().to_string(), 
         data: Some(vec![]), 
@@ -27,7 +27,9 @@ async fn index(
     };
 
     let movie_repo = repository::movie_repository::new_movie_repository(&db_client.client);
-    let movies = movie_repo.get_all().await;
+    let movie_service = service::movie_service::new_movie_service(&movie_repo);
+
+    let movies = movie_service.get_all().await;
 
     if let Err(ref e) = movies {
         response.code = Status::InternalServerError.code as u8;
@@ -45,8 +47,8 @@ async fn index(
 async fn read(
     db_client: &State<config::mongo::MongoClient>,
     id: &str,
-) -> (Status, Json<models::common::Response<entity::movie_entity::Movie>>) {
-    let mut response = models::common::Response{ 
+) -> (Status, Json<models::common_model::Response<models::movie_model::GetMovieDetailResponse>>) {
+    let mut response = models::common_model::Response{ 
         code: Status::Ok.code as u8, 
         status: Status::Ok.reason().unwrap().to_string(), 
         data: None, 
@@ -54,7 +56,8 @@ async fn read(
     };
 
     let movie_repo = repository::movie_repository::new_movie_repository(&db_client.client);
-    let movie = movie_repo.get_detail(id.to_string()).await;
+    let movie_service = service::movie_service::new_movie_service(&movie_repo);
+    let movie = movie_service.get_detail(id.to_string()).await;
 
     match movie {
         Ok(movie) => {
