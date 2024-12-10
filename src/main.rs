@@ -9,6 +9,7 @@ mod config;
 mod controller;
 mod entity;
 mod exception;
+mod helper;
 mod models;
 mod repository;
 mod service;

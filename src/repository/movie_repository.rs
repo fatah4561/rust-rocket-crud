@@ -56,7 +56,7 @@ impl<'a> MovieRepositoryTrait for MovieRepository {
 
         let movie_obj_id = match ObjectId::parse_str(&id) {
             Ok(id) => id,
-            Err(e) => {
+            Err(_) => {
                 return Err(CustomError::bad_request_error(
                     "format id invalid".to_string(),
                     Some("id".to_string()),

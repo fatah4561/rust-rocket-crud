@@ -1,8 +1,9 @@
+use crate::exception::error::handle_error_response;
+use crate::helper::response::json_ok_response;
 use crate::models;
 use crate::service;
 use crate::service::movie_service::MovieService;
 use crate::service::movie_service::MovieServiceTrait;
-use crate::exception::error::handle_error_response;
 
 use std::sync::Arc;
 
@@ -34,23 +35,12 @@ async fn index(
     Status,
     Json<models::common_model::Response<Vec<models::movie_model::GetAllMoviesResponse>>>,
 ) {
-    let mut response = models::common_model::Response {
-        code: Status::Ok.code,
-        status: Status::Ok.reason().unwrap().to_string(),
-        data: Some(vec![]),
-        errors: None,
+    let res = movie_controller.movie_service.get_all().await;
+
+    match res {
+        Ok(movies) => return json_ok_response(Some(movies)),
+        Err(e) => return handle_error_response(e),
     };
-
-    let movies = movie_controller.movie_service.get_all().await;
-
-    response.data = match movies {
-        Ok(m) => Some(m),
-        Err(e) => {
-            return handle_error_response(e)
-        },
-    };
-
-    return (Status::Ok, Json(response));
 }
 
 #[get("/<id>")]
@@ -61,25 +51,13 @@ async fn read(
     Status,
     Json<models::common_model::Response<models::movie_model::GetMovieDetailResponse>>,
 ) {
-    let mut response = models::common_model::Response {
-        code: Status::Ok.code,
-        status: Status::Ok.reason().unwrap().to_string(),
-        data: None,
-        errors: None,
-    };
-
     let movie = movie_controller
         .movie_service
         .get_detail(id.to_string())
         .await;
 
     match movie {
-        Ok(movie) => {
-            response.data = Some(movie);
-            return (Status::Ok, Json(response));
-        }
-        Err(e) => {
-            return handle_error_response(e);
-        }
+        Ok(movie) => return json_ok_response(Some(movie)),
+        Err(e) => return handle_error_response(e),
     }
 }

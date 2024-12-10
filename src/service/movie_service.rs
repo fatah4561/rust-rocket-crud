@@ -15,16 +15,16 @@ pub fn new_movie_service(movie_repository: Arc<MovieRepository>) -> MovieService
 #[async_trait]
 pub trait MovieServiceTrait {
     async fn get_all(&self) -> Result<Vec<movie_model::GetAllMoviesResponse>, CustomError>;
-    async fn get_detail(&self, id: String) -> Result<movie_model::GetMovieDetailResponse, CustomError>;
+    async fn get_detail(
+        &self,
+        id: String,
+    ) -> Result<movie_model::GetMovieDetailResponse, CustomError>;
 }
 
 #[async_trait]
 impl<'a> MovieServiceTrait for MovieService {
     async fn get_all(&self) -> Result<Vec<movie_model::GetAllMoviesResponse>, CustomError> {
-        let res = self
-            .movie_repository
-            .get_all()
-            .await?;
+        let res = self.movie_repository.get_all().await?;
 
         let mut movies = vec![];
         for movie in res {
@@ -44,11 +44,11 @@ impl<'a> MovieServiceTrait for MovieService {
         Ok(movies)
     }
 
-    async fn get_detail(&self, id: String) -> Result<movie_model::GetMovieDetailResponse, CustomError> {
-        let movie = self
-            .movie_repository
-            .get_detail(id)
-            .await?;
+    async fn get_detail(
+        &self,
+        id: String,
+    ) -> Result<movie_model::GetMovieDetailResponse, CustomError> {
+        let movie = self.movie_repository.get_detail(id).await?;
 
         let mut id = "".to_string();
         if let Some(movie_id) = &movie.id {
