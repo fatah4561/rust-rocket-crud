@@ -8,6 +8,7 @@ use dotenv::dotenv;
 mod config;
 mod controller;
 mod entity;
+mod exception;
 mod models;
 mod repository;
 mod service;

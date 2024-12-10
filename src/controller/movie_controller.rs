@@ -2,6 +2,7 @@ use crate::models;
 use crate::service;
 use crate::service::movie_service::MovieService;
 use crate::service::movie_service::MovieServiceTrait;
+use crate::exception::error::handle_error_response;
 
 use std::sync::Arc;
 
@@ -34,7 +35,7 @@ async fn index(
     Json<models::common_model::Response<Vec<models::movie_model::GetAllMoviesResponse>>>,
 ) {
     let mut response = models::common_model::Response {
-        code: Status::Ok.code as u8,
+        code: Status::Ok.code,
         status: Status::Ok.reason().unwrap().to_string(),
         data: Some(vec![]),
         errors: None,
@@ -42,14 +43,12 @@ async fn index(
 
     let movies = movie_controller.movie_service.get_all().await;
 
-    if let Err(ref e) = movies {
-        response.code = Status::InternalServerError.code as u8;
-        response.status = Status::InternalServerError.reason().unwrap().to_string();
-        response.errors = Some(e.to_string());
-        return (Status::InternalServerError, Json(response));
-    }
-    let movies = movies.unwrap();
-    response.data = Some(movies);
+    response.data = match movies {
+        Ok(m) => Some(m),
+        Err(e) => {
+            return handle_error_response(e)
+        },
+    };
 
     return (Status::Ok, Json(response));
 }
@@ -63,7 +62,7 @@ async fn read(
     Json<models::common_model::Response<models::movie_model::GetMovieDetailResponse>>,
 ) {
     let mut response = models::common_model::Response {
-        code: Status::Ok.code as u8,
+        code: Status::Ok.code,
         status: Status::Ok.reason().unwrap().to_string(),
         data: None,
         errors: None,
@@ -80,8 +79,7 @@ async fn read(
             return (Status::Ok, Json(response));
         }
         Err(e) => {
-            response.errors = Some(format!("{e}"));
-            return (Status::BadRequest, Json(response));
+            return handle_error_response(e);
         }
     }
 }

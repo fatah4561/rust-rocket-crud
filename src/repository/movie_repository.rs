@@ -7,6 +7,7 @@ use mongodb::{
 };
 
 use crate::entity::movie_entity;
+use crate::exception::error::CustomError;
 use crate::rocket::futures::TryStreamExt; // for try_next() trait
 
 pub struct MovieRepository {
@@ -15,8 +16,8 @@ pub struct MovieRepository {
 
 #[async_trait]
 pub trait MovieRepositoryTrait {
-    async fn get_all(&self) -> Result<Vec<movie_entity::Movie>, Error>;
-    async fn get_detail(&self, id: String) -> Result<movie_entity::Movie, Error>;
+    async fn get_all(&self) -> Result<Vec<movie_entity::Movie>, CustomError>;
+    async fn get_detail(&self, id: String) -> Result<movie_entity::Movie, CustomError>;
     fn insert(&self) -> Result<(), Error>;
     fn update(&self, request: movie_entity::Movie) -> Result<(), Error>;
     fn delete(&self, id: String) -> Result<(), Error>;
@@ -28,17 +29,20 @@ pub fn new_movie_repository(mongo: Arc<Client>) -> MovieRepository {
 
 #[async_trait]
 impl<'a> MovieRepositoryTrait for MovieRepository {
-    async fn get_all(&self) -> Result<Vec<movie_entity::Movie>, Error> {
+    async fn get_all(&self) -> Result<Vec<movie_entity::Movie>, CustomError> {
         let collection: mongodb::Collection<Document> =
             self.mongo.database("sample_mflix").collection("movies");
-        let mut movie_cursor = collection.find(doc! {}, None).await?;
+        let mut movie_cursor = collection
+            .find(doc! {}, None)
+            .await
+            .map_err(|e| CustomError::internal_server_error(e.to_string()))?;
 
         let mut movies = vec![];
         while let Ok(Some(doc)) = movie_cursor.try_next().await {
             let deserialized_movie: Result<movie_entity::Movie, bson::de::Error> =
                 bson::from_bson(Bson::Document(doc));
             if let Err(ref e) = deserialized_movie {
-                return Err(mongodb::error::Error::from(e.clone()));
+                return Err(CustomError::internal_server_error(e.to_string()));
             }
             movies.push(deserialized_movie.unwrap());
         }
@@ -46,17 +50,17 @@ impl<'a> MovieRepositoryTrait for MovieRepository {
         Ok(movies)
     }
 
-    async fn get_detail(&self, id: String) -> Result<movie_entity::Movie, Error> {
+    async fn get_detail(&self, id: String) -> Result<movie_entity::Movie, CustomError> {
         let collection: mongodb::Collection<Document> =
             self.mongo.database("sample_mflix").collection("movies");
 
         let movie_obj_id = match ObjectId::parse_str(&id) {
             Ok(id) => id,
             Err(e) => {
-                return Err(Error::from(std::io::Error::new(
-                    std::io::ErrorKind::InvalidInput,
-                    format!("Invalid ObjectId: {}", e),
-                )));
+                return Err(CustomError::bad_request_error(
+                    "format id invalid".to_string(),
+                    Some("id".to_string()),
+                ));
             }
         };
 
@@ -69,19 +73,18 @@ impl<'a> MovieRepositoryTrait for MovieRepository {
                     match bson::from_bson(Bson::Document(movie)) {
                         Ok(movie) => movie,
                         Err(e) => {
-                            return Err(e.into());
+                            return Err(CustomError::internal_server_error(e.to_string()));
                         }
                     };
 
                 return Ok(deserialized_movie);
             }
             Ok(None) => {
-                return Err(Error::from(std::io::Error::new(
-                    std::io::ErrorKind::NotFound,
-                    format!("Not Found for id: {id}"),
-                )));
+                return Err(CustomError::not_found_error("Data not found".to_string()));
             }
-            Err(e) => return Err(e),
+            Err(e) => {
+                return Err(CustomError::internal_server_error(e.to_string()));
+            }
         }
     }
 
