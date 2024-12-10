@@ -21,6 +21,7 @@ mod config;
 mod controller;
 mod models;
 mod entity;
+mod repository;
 
 #[launch]
 async fn rocket() -> _ {

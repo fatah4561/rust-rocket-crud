@@ -1,25 +1,13 @@
-use chrono;
-use chrono::{TimeZone, Utc};
-use dotenv::dotenv;
-use std::str::FromStr;
-use std::{env, vec};
-
-use mongodb::{
-    bson::{doc, oid::ObjectId, Bson, Document},
-    options::{ClientOptions, ResolverConfig},
-    Client,
-};
-
 use crate::config;
 use crate::models;
 use crate::entity;
+use crate::repository;
+use crate::repository::movie_repository::MovieRepository;
 
-use rocket::fairing::{self, AdHoc};
-use rocket::http::{ContentType, Status};
-use rocket::serde::{json::Json, Deserialize, Serialize};
+use rocket::fairing::AdHoc;
+use rocket::http::Status;
+use rocket::serde::json::Json;
 use rocket::State;
-
-use rocket::futures::TryStreamExt;
 
 pub fn stage() -> AdHoc {
     AdHoc::on_ignite("movie controller", |rocket| async {
@@ -38,31 +26,16 @@ async fn index(
         errors: None,
     };
 
-    let movies: mongodb::Collection<Document> = db_client
-        .client
-        .database("sample_mflix")
-        .collection("movies");
-    let movie_cursor = movies
-        .find(
-            doc! {},
-            None,
-        )
-        .await;
-    if let Err(ref e) = movie_cursor {
-        response.errors = Some(format!("Error finding data: {e}"));
-        return (Status::InternalServerError, Json(response));
-    }
-    let mut movie_cursor = movie_cursor.unwrap();
+    let movie_repo = repository::movie_repository::new_movie_repository(&db_client.client);
+    let movies = movie_repo.get_all().await;
 
-    let mut movies = vec![];
-    while let Ok(Some(doc)) = movie_cursor.try_next().await {
-        let deserialized_movie: Result<entity::movie_entity::Movie, bson::de::Error> = bson::from_bson(Bson::Document(doc));
-        if let Err(ref e) = deserialized_movie {
-            response.errors = Some(format!("Error deserializing movie: {e}"));
-            return (Status::InternalServerError, Json(response));
-        }
-        movies.push(deserialized_movie.unwrap());
+    if let Err(ref e) = movies {
+        response.code = Status::InternalServerError.code as u8;
+        response.status = Status::InternalServerError.reason().unwrap().to_string();
+        response.errors = Some(e.to_string());
+        return (Status::InternalServerError, Json(response))
     }
+    let movies = movies.unwrap();
     response.data = Some(movies);
 
     return (Status::Ok, Json(response));
@@ -79,53 +52,18 @@ async fn read(
         data: None, 
         errors: None,
     };
-    let movies_coll: mongodb::Collection<Document> = db_client
-        .client
-        .database("sample_mflix")
-        .collection("movies");
-    let movie_obj_id = match ObjectId::from_str(&id) {
-        Ok(id) => id,
-        Err(e) => {
-            response.errors = Some(format!("Error getting movie: {e}"));
-            return (
-                Status::BadRequest,
-                Json(response),
-            );
-        }
-    };
 
-    match movies_coll
-        .find_one(doc! { "_id": movie_obj_id }, None)
-        .await
-    {
-        Ok(Some(movie)) => {
-            let deserialized_movie: entity::movie_entity::Movie = match bson::from_bson(Bson::Document(movie)) {
-                Ok(movie) => movie,
-                Err(e) => {
-                    response.errors = Some(format!("Error finding movie: {e}"));
-                    return (
-                        Status::InternalServerError,
-                        Json(response)
-                    );
-                }
-            };
+    let movie_repo = repository::movie_repository::new_movie_repository(&db_client.client);
+    let movie = movie_repo.get_detail(id.to_string()).await;
 
-            response.data = Some(deserialized_movie);
-            return (Status::Ok, Json(response));
-        }
-        Ok(None) => {
-            response.errors = Some(format!("No movie found with ID: {id}"));
-            return (
-                Status::NotFound,
-                Json(response),
-            );
-        }
+    match movie {
+        Ok(movie) => {
+            response.data = Some(movie);
+            return (Status::Ok, Json(response))
+        },
         Err(e) => {
-            response.errors = Some(format!("Error finding movie: {e}"));
-            return (
-                Status::InternalServerError,
-                Json(response),
-            );
+            response.errors = Some(format!("{e}"));
+            return (Status::BadRequest, Json(response))
         }
     }
 }
