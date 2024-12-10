@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate rocket;
 
+use std::sync::Arc;
+
 use dotenv::dotenv;
 
 mod config;
@@ -20,6 +22,15 @@ async fn rocket() -> _ {
     }
     let client = client.unwrap();
 
+    // repository here
+    let movie_repository: Arc<repository::movie_repository::MovieRepository> = repository::movie_repository::new_movie_repository(client.client).into();
+
+    // service here
+    let movie_service: Arc<service::movie_service::MovieService> = service::movie_service::new_movie_service(movie_repository).into();
+
+    // controller here (controller used once so don't use Arc<>)
+    let movie_controller = controller::movie_controller::new_movie_controller(movie_service);
+
     rocket::build()
-        .attach(controller::movie_controller::stage(client))
+        .attach(controller::movie_controller::stage(movie_controller))
 }

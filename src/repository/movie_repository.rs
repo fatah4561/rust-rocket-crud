@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use mongodb::{
     bson::{doc, oid::ObjectId, Bson, Document},
     error::Error,
@@ -7,8 +9,8 @@ use mongodb::{
 use crate::entity::movie_entity;
 use crate::rocket::futures::TryStreamExt; // for try_next() trait
 
-pub struct MovieRepository<'a> {
-    mongo: &'a Client,
+pub struct MovieRepository {
+    mongo: Arc<Client>,
 }
 
 #[async_trait]
@@ -20,12 +22,12 @@ pub trait MovieRepositoryTrait {
     fn delete(&self, id: String) -> Result<(), Error>;
 }
 
-pub fn new_movie_repository(client: &Client) -> MovieRepository {
-    MovieRepository { mongo: client }
+pub fn new_movie_repository(mongo: Arc<Client>) -> MovieRepository {
+    MovieRepository { mongo }
 }
 
 #[async_trait]
-impl<'a> MovieRepositoryTrait for MovieRepository<'a> {
+impl<'a> MovieRepositoryTrait for MovieRepository {
     async fn get_all(&self) -> Result<Vec<movie_entity::Movie>, Error> {
         let collection: mongodb::Collection<Document> =
             self.mongo.database("sample_mflix").collection("movies");

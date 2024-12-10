@@ -1,11 +1,13 @@
 use crate::models::movie_model;
 use crate::repository::movie_repository::{MovieRepository, MovieRepositoryTrait};
 
-pub struct MovieService<'a> {
-    movie_repository: &'a MovieRepository<'a>,
+use std::sync::Arc;
+
+pub struct MovieService {
+    movie_repository: Arc<MovieRepository>,
 }
 
-pub fn new_movie_service<'a>(movie_repository: &'a MovieRepository) -> MovieService<'a> {
+pub fn new_movie_service(movie_repository: Arc<MovieRepository>) -> MovieService {
     MovieService { movie_repository }
 }
 
@@ -16,7 +18,7 @@ pub trait MovieServiceTrait {
 }
 
 #[async_trait]
-impl<'a> MovieServiceTrait for MovieService<'a> {
+impl<'a> MovieServiceTrait for MovieService {
     async fn get_all(&self) -> Result<Vec<movie_model::GetAllMoviesResponse>, String> {
         let res = self.movie_repository.get_all().await;
         if let Err(ref e) = res {
