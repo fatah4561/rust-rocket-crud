@@ -1,11 +1,6 @@
-#[macro_use]
-extern crate rocket;
 
-mod exception;
-mod models;
-
-use exception::error::{handle_error_response, CustomError};
-use models::common_model::Response;
+use crate::exception::error::{handle_error_response, CustomError};
+use crate::models::common_model::Response;
 
 use rocket::http::Status;
 use rocket::serde::json::Json;
