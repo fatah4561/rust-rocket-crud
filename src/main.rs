@@ -14,6 +14,8 @@ mod models;
 mod repository;
 mod service;
 
+use rust_crud_mongo::not_found;
+
 #[launch]
 async fn rocket() -> _ {
     dotenv().ok();
@@ -43,6 +45,7 @@ async fn rocket() -> _ {
         controller::survey_controller::new_survey_controller(survey_service.clone());
 
     rocket::build()
+        .register("/", catchers![not_found])
         .attach(controller::movie_controller::stage(movie_controller))
         .attach(controller::survey_controller::stage(survey_controller))
 }
