@@ -16,3 +16,14 @@ pub enum ErrorResponse {
     String(String),
     Object(HashMap<String, String>),
 }
+
+// enums for HashMap / BTreeMap values type
+#[derive(Serialize, Debug)]
+#[serde(untagged)]
+pub enum MapValueType {
+    Boolean(bool),
+    String(String),
+    Unsigned(u64),
+    Integer(i64),
+    Float(f64),
+}

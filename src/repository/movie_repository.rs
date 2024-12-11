@@ -8,7 +8,7 @@ use mongodb::{
 
 use crate::entity::movie_entity;
 use crate::exception::error::CustomError;
-use crate::rocket::futures::TryStreamExt; // for try_next() trait
+use crate::rocket::futures::TryStreamExt; // for try_next() trait (don't remove)
 
 pub struct MovieRepository {
     mongo: Arc<Client>,
@@ -28,7 +28,7 @@ pub fn new_movie_repository(mongo: Arc<Client>) -> MovieRepository {
 }
 
 #[async_trait]
-impl<'a> MovieRepositoryTrait for MovieRepository {
+impl MovieRepositoryTrait for MovieRepository {
     async fn get_all(&self) -> Result<Vec<movie_entity::Movie>, CustomError> {
         let collection: mongodb::Collection<Document> =
             self.mongo.database("sample_mflix").collection("movies");
