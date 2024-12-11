@@ -14,6 +14,8 @@ mod models;
 mod repository;
 mod service;
 
+use rust_crud_mongo::not_found;
+
 #[launch]
 async fn rocket() -> _ {
     dotenv().ok();
@@ -35,5 +37,7 @@ async fn rocket() -> _ {
     // controller here (controller used once so don't use Arc<>)
     let movie_controller = controller::movie_controller::new_movie_controller(movie_service);
 
-    rocket::build().attach(controller::movie_controller::stage(movie_controller))
+    rocket::build()
+    .register("/", catchers![not_found])
+    .attach(controller::movie_controller::stage(movie_controller))
 }
