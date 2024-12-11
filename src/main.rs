@@ -13,8 +13,9 @@ mod helper;
 mod models;
 mod repository;
 mod service;
+mod catcher;
 
-use rust_crud_mongo::not_found;
+use catcher::http::not_found;
 
 #[launch]
 async fn rocket() -> _ {
